@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Asset Manager — Ardee & Pilot Industries</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+:root{--bg:#F2F1ED;--surface:#fff;--border:#DDDDD7;--border2:#C5C5BF;--text:#18180F;--text2:#55554E;--text3:#99998F;--ink:#18180F;--green:#1E6641;--green-bg:#D4EDDA;--amber:#7A4F10;--amber-bg:#FEF3CD;--red:#7A2030;--red-bg:#FBDDE2;--gray-bg:#EBEBEB;--gray-text:#55554E;--blue:#1A4A7A;--blue-bg:#DBE8F8;--r:6px;--rl:10px;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+.shell{display:grid;grid-template-columns:210px 1fr;min-height:100vh;}
+.sidebar{background:var(--ink);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.logo-area{padding:1.5rem 1.25rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.08);}
+.logo-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:0.18em;color:rgba(255,255,255,0.3);text-transform:uppercase;margin-bottom:5px;}
+.logo-title{font-size:14px;font-weight:600;color:#fff;}
+.nav{padding:1rem 0;flex:1;}
+.nav-group-label{font-family:var(--mono);font-size:9px;letter-spacing:0.15em;color:rgba(255,255,255,0.25);text-transform:uppercase;padding:0.75rem 1.25rem 0.35rem;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:0.5rem 1.25rem;font-size:13px;color:rgba(255,255,255,0.55);cursor:pointer;border-left:2px solid transparent;transition:all 0.12s;}
+.nav-item:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.05);}
+.nav-item.active{color:#fff;background:rgba(255,255,255,0.1);border-left-color:#fff;}
+.sidebar-footer{padding:1rem 1.25rem;border-top:1px solid rgba(255,255,255,0.08);}
+.plant-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.07);border-radius:4px;padding:3px 8px;margin:2px 2px 0 0;}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.main{overflow:auto;display:flex;flex-direction:column;}
+.sync-banner{padding:8px 2rem;font-family:var(--mono);font-size:11px;text-align:center;display:none;}
+.sync-banner.loading{display:block;background:var(--blue-bg);color:var(--blue);}
+.sync-banner.success{display:block;background:var(--green-bg);color:var(--green);}
+.sync-banner.error{display:block;background:var(--amber-bg);color:var(--amber);}
+.topbar{padding:1rem 2rem;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.page-title{font-size:15px;font-weight:600;}
+.page-sub{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:2px;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:all 0.12s;font-family:var(--sans);white-space:nowrap;}
+.btn:hover{background:var(--bg);border-color:var(--border2);}
+.btn-primary{background:var(--ink);color:#fff;border-color:var(--ink);}
+.btn-primary:hover{background:#2a2a20;}
+.btn-scan{background:var(--ink);color:#fff;border-color:var(--ink);font-family:var(--mono);font-size:11px;letter-spacing:0.05em;gap:8px;}
+.scan-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;animation:blink 1.8s ease-in-out infinite;flex-shrink:0;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.content{padding:1.5rem 2rem;flex:1;}
+.section{display:none;}.section.active{display:block;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:1rem 1.25rem;}
+.stat-label{font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
+.stat-value{font-family:var(--mono);font-size:28px;font-weight:400;color:var(--text);line-height:1;}
+.stat-meta{font-size:11px;color:var(--text3);margin-top:5px;}
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap;}
+.search-box{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:0 12px;}
+.search-box input{border:none;outline:none;font-size:13px;color:var(--text);background:transparent;width:100%;padding:8px 0;font-family:var(--sans);}
+.search-box input::placeholder{color:var(--text3);}
+.pills{display:flex;gap:6px;flex-wrap:wrap;}
+.pill{padding:5px 12px;border-radius:99px;font-size:11px;font-family:var(--mono);border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all 0.12s;}
+.pill.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;}
+table{width:100%;border-collapse:collapse;table-layout:fixed;}
+thead th{padding:10px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);background:var(--bg);font-weight:400;}
+tbody td{padding:10px 14px;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr{cursor:pointer;transition:background 0.1s;}
+tbody tr:hover td{background:#FAFAF6;}
+.id-cell{font-family:var(--mono);font-size:11px;color:var(--text3);}
+.val-cell{font-family:var(--mono);font-size:12px;}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:500;font-family:var(--mono);}
+.badge::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.badge-active{background:var(--green-bg);color:var(--green);}.badge-active::before{background:var(--green);}
+.badge-repair{background:var(--amber-bg);color:var(--amber);}.badge-repair::before{background:var(--amber);}
+.badge-disposed{background:var(--gray-bg);color:var(--gray-text);}.badge-disposed::before{background:var(--border2);}
+.row-actions{display:flex;gap:4px;justify-content:flex-end;}
+.icon-btn{width:28px;height:28px;border-radius:var(--r);border:1px solid transparent;background:transparent;color:var(--text3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:14px;transition:all 0.1s;}
+.icon-btn:hover{background:var(--bg);border-color:var(--border);color:var(--text);}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;padding:1rem;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:var(--rl);width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
+.modal-header{padding:1.25rem 1.5rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:15px;font-weight:600;}
+.modal-body{padding:1.25rem 1.5rem;}
+.modal-footer{padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.full{grid-column:1/-1;}
+.form-group label{font-size:11px;font-family:var(--mono);color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;}
+.form-group input,.form-group select,.form-group textarea{border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;font-size:13px;color:var(--text);background:var(--surface);font-family:var(--sans);outline:none;transition:border-color 0.12s;width:100%;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--ink);}
+.form-group textarea{resize:vertical;min-height:70px;}
+.scan-container{max-width:500px;margin:0 auto;}
+.scan-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:1.5rem;}
+.scan-header{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);}
+.scan-title{font-size:15px;font-weight:600;margin-bottom:3px;}
+.scan-sub{font-size:12px;color:var(--text3);font-family:var(--mono);}
+.scan-body{padding:1.5rem;}
+.scan-result{display:none;border-radius:var(--r);padding:1rem;margin-top:1rem;}
+.scan-result.show{display:block;}
+.scan-result-id{font-family:var(--mono);font-size:18px;font-weight:500;}
+.scan-result-name{font-size:13px;margin-top:3px;}
+.scan-actions{display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;}
+.manual-input{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:1.25rem 1.5rem;}
+.manual-title{font-size:13px;font-weight:500;margin-bottom:10px;color:var(--text2);}
+.manual-row{display:flex;gap:8px;}
+.manual-row input{flex:1;border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;font-size:13px;font-family:var(--mono);color:var(--text);background:var(--bg);outline:none;text-transform:uppercase;}
+.sticker-controls{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
+.sticker-note{font-size:12px;color:var(--text3);margin-top:4px;}
+.sticker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;}
+.sticker-card{background:var(--surface);border:1.5px dashed var(--border2);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:border-color 0.12s;position:relative;}
+.sticker-card.selected{border-color:var(--ink);border-style:solid;}
+.sticker-card:hover{border-color:var(--ink);}
+.sticker-qr-wrap{width:88px;height:88px;display:flex;align-items:center;justify-content:center;}
+.sticker-info{text-align:center;width:100%;}
+.sticker-id{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);letter-spacing:0.05em;}
+.sticker-name{font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;}
+.sticker-plant{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:1px;}
+.sticker-check{position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;background:var(--ink);color:#fff;font-size:10px;display:none;align-items:center;justify-content:center;}
+.sticker-card.selected .sticker-check{display:flex;}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:1.25rem;}
+.detail-label{font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
+.detail-value{font-size:14px;color:var(--text);}
+.detail-value.mono{font-family:var(--mono);}
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--text3);}
+.empty-icon{font-size:36px;margin-bottom:12px;opacity:0.4;}
+.empty-title{font-size:14px;font-weight:500;color:var(--text2);margin-bottom:4px;}
+.empty-sub{font-size:12px;}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--ink);color:#fff;padding:10px 18px;border-radius:var(--r);font-size:13px;font-family:var(--mono);z-index:9999;transform:translateY(80px);opacity:0;transition:all 0.25s ease;pointer-events:none;max-width:300px;}
+.toast.show{transform:translateY(0);opacity:1;}
+@media print{body *{visibility:hidden;}#print-area,#print-area *{visibility:visible;}#print-area{position:fixed;left:0;top:0;width:100%;}.print-sheet{display:grid;grid-template-columns:repeat(4,1fr);gap:5mm;padding:10mm;}.print-sticker{border:1px dashed #999;border-radius:4px;padding:5mm;display:flex;flex-direction:column;align-items:center;gap:4px;break-inside:avoid;}.print-sticker canvas{width:60px!important;height:60px!important;}.print-id{font-family:monospace;font-size:10px;font-weight:bold;letter-spacing:1px;}.print-name{font-size:8px;text-align:center;max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}.print-plant{font-family:monospace;font-size:7px;color:#666;}}
+.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--ink);z-index:200;padding:8px 0;border-top:1px solid rgba(255,255,255,0.1);}
+.mob-nav-items{display:flex;justify-content:space-around;}
+.mob-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:rgba(255,255,255,0.5);cursor:pointer;padding:4px 12px;font-size:10px;font-family:var(--mono);}
+.mob-nav-item.active{color:#fff;}
+.mob-nav-item span{font-size:18px;}
+@media(max-width:768px){.shell{grid-template-columns:1fr;}.sidebar{display:none;}.stats-grid{grid-template-columns:repeat(2,1fr);}.form-grid{grid-template-columns:1fr;}.content{padding:1rem;padding-bottom:80px;}.topbar{padding:0.75rem 1rem;}.mob-nav{display:block;}table{font-size:12px;}thead th,tbody td{padding:8px 10px;}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+<div class="logo-area"><div class="logo-eyebrow">Asset Manager v1</div><div class="logo-title">Ardee & Pilot<br>Industries</div></div>
+<nav class="nav">
+<div class="nav-group-label">Main</div>
+<div class="nav-item active" onclick="showSection('dashboard')">&#8862; Dashboard</div>
+<div class="nav-item" onclick="showSection('assets')">&#9647; All Assets</div>
+<div class="nav-item" onclick="showSection('add')">+ Add Asset</div>
+<div class="nav-group-label">Tools</div>
+<div class="nav-item" onclick="showSection('scan')">&#8999; Scan QR Code</div>
+<div class="nav-item" onclick="showSection('stickers')">&#9672; Print Stickers</div>
+<div class="nav-group-label">Filter by Plant</div>
+<div class="nav-item" onclick="filterByPlant('Tirupati')">&#9676; Tirupati (Ardee)</div>
+<div class="nav-item" onclick="filterByPlant('Bhiwadi')">&#9676; Bhiwadi (Pilot)</div>
+</nav>
+<div class="sidebar-footer">
+<div style="font-family:var(--mono);font-size:9px;color:rgba(255,255,255,0.25);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.1em;">Plants</div>
+<span class="plant-badge"><span class="dot" style="background:#4ade80"></span>Tirupati</span>
+<span class="plant-badge"><span class="dot" style="background:#4ade80"></span>Bhiwadi</span>
+</div>
+</aside>
+<div class="main">
+<div class="sync-banner" id="sync-banner"></div>
+<div class="topbar">
+<div><div class="page-title" id="page-title">Dashboard</div><div class="page-sub" id="page-sub">OVERVIEW - ALL PLANTS</div></div>
+<div class="topbar-right">
+<button class="btn btn-scan" onclick="showSection('scan')"><span class="scan-dot"></span>SCAN QR</button>
+<button class="btn btn-primary" onclick="showSection('add')">+ Add Asset</button>
+</div>
+</div>
+<div class="content">
+<div class="section active" id="sec-dashboard">
+<div class="stats-grid">
+<div class="stat-card"><div class="stat-label">Total Assets</div><div class="stat-value" id="stat-total">-</div><div class="stat-meta">Across all plants</div></div>
+<div class="stat-card"><div class="stat-label">Total Value</div><div class="stat-value" id="stat-value">-</div><div class="stat-meta">Book value</div></div>
+<div class="stat-card"><div class="stat-label">Under Repair</div><div class="stat-value" id="stat-repair">-</div><div class="stat-meta">Needs attention</div></div>
+<div class="stat-card"><div class="stat-label">Disposed</div><div class="stat-value" id="stat-disposed">-</div><div class="stat-meta">Written off</div></div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+<div style="font-size:13px;font-weight:500;color:var(--text2);">Recent assets</div>
+<button class="btn" style="font-size:11px;" onclick="showSection('assets')">View all &rarr;</button>
+</div>
+<div class="table-wrap"><table><thead><tr><th style="width:90px">ID</th><th style="width:190px">Name</th><th style="width:110px">Category</th><th style="width:100px">Plant</th><th style="width:100px">Value</th><th style="width:90px">Status</th></tr></thead><tbody id="dash-tbody"></tbody></table></div>
+</div>
+<div class="section" id="sec-assets">
+<div class="toolbar">
+<div class="search-box"><input type="text" id="search-input" placeholder="Search by name, ID, category, plant..." oninput="renderTable()"/></div>
+<div class="pills">
+<span class="pill active" onclick="setFilter('all',this)">All</span>
+<span class="pill" onclick="setFilter('Active',this)">Active</span>
+<span class="pill" onclick="setFilter('Under Repair',this)">Repair</span>
+<span class="pill" onclick="setFilter('Disposed',this)">Disposed</span>
+</div>
+<button class="btn" onclick="exportCSV()">&#8595; CSV</button>
+</div>
+<div class="table-wrap"><table><thead><tr><th style="width:90px">Asset ID</th><th style="width:160px">Name</th><th style="width:100px">Category</th><th style="width:100px">Plant</th><th style="width:90px">Value</th><th style="width:90px">Status</th><th style="width:80px">Actions</th></tr></thead><tbody id="assets-tbody"></tbody></table></div>
+</div>
+<div class="section" id="sec-add">
+<div style="max-width:600px;">
+<div class="table-wrap" style="padding:1.5rem;">
+<div style="font-size:15px;font-weight:600;margin-bottom:1.25rem;" id="form-heading">Add New Asset</div>
+<div class="form-grid">
+<div class="form-group"><label>Asset Name *</label><input type="text" id="f-name" placeholder="e.g. Rotary Furnace #3"/></div>
+<div class="form-group"><label>Category *</label><select id="f-cat"><option value="">Select category</option><option>Machinery</option><option>Equipment</option><option>Vehicle</option><option>Electrical</option><option>Furniture</option><option>Computer / IT</option><option>Building / Civil</option><option>Tools</option><option>Other</option></select></div>
+<div class="form-group"><label>Plant *</label><select id="f-plant"><option value="">Select plant</option><option>Tirupati (Ardee)</option><option>Bhiwadi (Pilot)</option><option>Delhi (Head Office)</option></select></div>
+<div class="form-group"><label>Sub-location</label><input type="text" id="f-subloc" placeholder="e.g. Shop Floor A"/></div>
+<div class="form-group"><label>Purchase Value (Rs) *</label><input type="number" id="f-value" placeholder="e.g. 1850000"/></div>
+<div class="form-group"><label>Purchase Date *</label><input type="date" id="f-date"/></div>
+<div class="form-group"><label>Vendor</label><input type="text" id="f-vendor" placeholder="e.g. ABC Machinery"/></div>
+<div class="form-group"><label>Invoice / PO</label><input type="text" id="f-invoice" placeholder="e.g. INV-2024-001"/></div>
+<div class="form-group"><label>Status</label><select id="f-status"><option>Active</option><option>Under Repair</option><option>Disposed</option></select></div>
+<div class="form-group"><label>Useful Life (years)</label><input type="number" id="f-life" placeholder="e.g. 10"/></div>
+<div class="form-group full"><label>Notes</label><textarea id="f-notes" placeholder="Warranty, service dates, remarks..."></textarea></div>
+</div>
+<div style="margin-top:1.25rem;display:flex;gap:8px;">
+<button class="btn btn-primary" onclick="saveAsset()" id="save-btn">Save Asset</button>
+<button class="btn" onclick="resetForm()">Clear</button>
+</div>
+</div>
+<div style="margin-top:12px;padding:10px 14px;background:var(--blue-bg);border-radius:var(--r);font-size:12px;color:var(--blue);font-family:var(--mono);">Asset ID auto-generated: ARD-### for Ardee, PLT-### for Pilot</div>
+</div>
+</div>
+<div class="section" id="sec-scan">
+<div class="scan-container">
+<div class="scan-card">
+<div class="scan-header"><div class="scan-title">Scan Asset QR Code</div><div class="scan-sub">Point camera at sticker on the asset</div></div>
+<div class="scan-body">
+<div id="qr-reader" style="width:100%;"></div>
+<div id="scan-result" class="scan-result">
+<div class="scan-result-id" id="scan-result-id">-</div>
+<div class="scan-result-name" id="scan-result-name">-</div>
+<div class="scan-actions">
+<button class="btn btn-primary" onclick="viewScannedAsset()">View Details</button>
+<button class="btn" onclick="editScannedAsset()">Edit Asset</button>
+<button class="btn" onclick="restartScanner()">Scan Again</button>
+</div>
+</div>
+</div>
+</div>
+<div class="manual-input">
+<div class="manual-title">Or enter Asset ID manually</div>
+<div class="manual-row"><input type="text" id="manual-id" placeholder="e.g. ARD-001" onkeydown="if(event.key==='Enter')lookupManual()"/><button class="btn btn-primary" onclick="lookupManual()">Look Up</button></div>
+</div>
+</div>
+</div>
+<div class="section" id="sec-stickers">
+<div class="sticker-controls">
+<div style="flex:1;"><div style="font-size:14px;font-weight:500;">Select assets to print QR stickers</div><div class="sticker-note">Prints on A4 - 4 stickers per row.</div></div>
+<button class="btn" onclick="selectAllStickers()">Select All</button>
+<button class="btn" onclick="clearStickerSelection()">Clear</button>
+<button class="btn btn-primary" onclick="printStickers()">Print (<span id="sel-count">0</span>)</button>
+</div>
+<div class="sticker-grid" id="sticker-grid"></div>
+</div>
+</div>
+</div>
+</div>
+<nav class="mob-nav"><div class="mob-nav-items">
+<div class="mob-nav-item active" onclick="showSection('dashboard')" id="mob-dashboard"><span>&#8862;</span>Home</div>
+<div class="mob-nav-item" onclick="showSection('assets')" id="mob-assets"><span>&#9647;</span>Assets</div>
+<div class="mob-nav-item" onclick="showSection('add')" id="mob-add"><span>+</span>Add</div>
+<div class="mob-nav-item" onclick="showSection('scan')" id="mob-scan"><span>&#8999;</span>Scan</div>
+<div class="mob-nav-item" onclick="showSection('stickers')" id="mob-stickers"><span>&#9672;</span>Print</div>
+</div></nav>
+<div class="modal-overlay" id="detail-modal"><div class="modal">
+<div class="modal-header"><div class="modal-title" id="modal-title">Asset Details</div><button class="icon-btn" onclick="closeModal('detail-modal')">&#10005;</button></div>
+<div class="modal-body" id="modal-body-content"></div>
+<div class="modal-footer" id="modal-footer-btns"></div>
+</div></div>
+<div id="print-area" style="display:none;"><div class="print-sheet" id="print-sheet"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+var SHEET_URL='https://script.google.com/macros/s/AKfycby3lmBub2vBrXiTAv06VX9_RrzjO_UnbmdC6JZ6Bj48HUPX2uv9JaIz0fzW5yyCkjM/exec';
+var assets=[];
+var editingId=null,currentFilter='all',currentPlantFilter='',scannerInstance=null,scannedAsset=null,selectedStickers=[];
+
+window.addEventListener('load',function(){
+  showBanner('loading','Loading assets from Google Sheets...');
+  loadFromSheets();
+});
+
+function loadFromSheets(){
+  var img=new Image();
+  var url=SHEET_URL+'?action=load&cb=handleLoad&t='+Date.now();
+  var s=document.createElement('script');
+  // Use fetch with GET — works without CORS issues
+  fetch(SHEET_URL+'?action=load&t='+Date.now())
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.ok&&d.assets){
+      assets=d.assets;
+      localStorage.setItem('fam_assets',JSON.stringify(assets));
+      showBanner('success','Loaded '+assets.length+' assets from Google Sheets');
+      setTimeout(hideBanner,3000);
+    } else {
+      fallbackLocal();
+    }
+    renderDashboard();
+  }).catch(function(){
+    fallbackLocal();
+    renderDashboard();
+  });
+}
+
+function fallbackLocal(){
+  var saved=localStorage.getItem('fam_assets');
+  if(saved){assets=JSON.parse(saved);}
+  showBanner('error','Could not reach Sheets - showing local data');
+  setTimeout(hideBanner,4000);
+}
+
+function syncToSheets(cb){
+  localStorage.setItem('fam_assets',JSON.stringify(assets));
+  showBanner('loading','Saving to Google Sheets...');
+  // Send via GET request - no CORS issues ever
+  var url=SHEET_URL+'?action=sync&data='+encodeURIComponent(JSON.stringify(assets))+'&t='+Date.now();
+  fetch(url)
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.ok){
+      showBanner('success','Saved to Google Sheets ('+d.count+' assets)');
+      setTimeout(hideBanner,3000);
+    } else {
+      showBanner('error','Sync error: '+d.error);
+      setTimeout(hideBanner,4000);
+    }
+    if(cb)cb();
+  }).catch(function(err){
+    showBanner('error','Could not reach Sheets - saved locally');
+    setTimeout(hideBanner,4000);
+    if(cb)cb();
+  });
+}
+
+function showBanner(type,msg){
+  var b=document.getElementById('sync-banner');
+  b.className='sync-banner '+type;
+  b.textContent=msg;
+}
+function hideBanner(){
+  var b=document.getElementById('sync-banner');
+  b.className='sync-banner';
+  b.textContent='';
+}
+
+function genId(plant){
+  var p=(plant.indexOf('Ardee')>=0||plant.indexOf('Tirupati')>=0)?'ARD':(plant.indexOf('Pilot')>=0||plant.indexOf('Bhiwadi')>=0)?'PLT':'HO';
+  var nums=assets.filter(function(a){return a.id&&a.id.indexOf(p)===0;}).map(function(a){return parseInt(a.id.split('-')[1]);}).filter(function(n){return!isNaN(n);});
+  return p+'-'+String(nums.length?Math.max.apply(null,nums)+1:1).padStart(3,'0');
+}
+
+function showSection(name){
+  document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  document.querySelectorAll('.mob-nav-item').forEach(function(n){n.classList.remove('active');});
+  document.getElementById('sec-'+name).classList.add('active');
+  var m=document.getElementById('mob-'+name);if(m)m.classList.add('active');
+  var L={dashboard:['Dashboard','OVERVIEW - ALL PLANTS'],assets:['All Assets','FULL ASSET REGISTER'],add:['Add Asset','NEW ENTRY'],scan:['Scan QR Code','IDENTIFY ASSET BY STICKER'],stickers:['Print Stickers','GENERATE QR LABELS']};
+  document.getElementById('page-title').textContent=L[name]?L[name][0]:name;
+  document.getElementById('page-sub').textContent=L[name]?L[name][1]:'';
+  if(name==='dashboard')renderDashboard();
+  if(name==='assets'){currentPlantFilter='';renderTable();}
+  if(name==='scan')initScanner();
+  if(name==='stickers')renderStickers();
+  if(name!=='scan'&&scannerInstance)stopScanner();
+}
+function filterByPlant(p){currentPlantFilter=p;showSection('assets');}
+
+function renderDashboard(){
+  document.getElementById('stat-total').textContent=assets.length;
+  document.getElementById('stat-value').textContent='Rs '+fmtV(assets.reduce(function(s,a){return s+(+a.value||0);},0));
+  document.getElementById('stat-repair').textContent=assets.filter(function(a){return a.status==='Under Repair';}).length;
+  document.getElementById('stat-disposed').textContent=assets.filter(function(a){return a.status==='Disposed';}).length;
+  var rows=assets.slice().reverse().slice(0,6);
+  document.getElementById('dash-tbody').innerHTML=rows.length?rows.map(function(a){return'<tr onclick="openDetail(\''+a.id+'\')"><td class="id-cell">'+a.id+'</td><td>'+a.name+'</td><td>'+a.cat+'</td><td>'+shortPlant(a.plant)+'</td><td class="val-cell">'+fmtV(a.value)+'</td><td>'+badge(a.status)+'</td></tr>';}).join(''):'<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">&#9647;</div><div class="empty-title">No assets yet</div><div class="empty-sub">Add your first asset</div></div></td></tr>';
+}
+
+function setFilter(f,el){currentFilter=f;document.querySelectorAll('.pill').forEach(function(p){p.classList.remove('active');});el.classList.add('active');renderTable();}
+function renderTable(){
+  var q=(document.getElementById('search-input')?document.getElementById('search-input').value:'').toLowerCase();
+  var list=assets.filter(function(a){
+    var mF=currentFilter==='all'||a.status===currentFilter;
+    var mP=!currentPlantFilter||(a.plant&&a.plant.indexOf(currentPlantFilter)>=0);
+    var mS=!q||[a.id,a.name,a.cat,a.plant].some(function(x){return x&&x.toLowerCase().indexOf(q)>=0;});
+    return mF&&mP&&mS;
+  });
+  document.getElementById('assets-tbody').innerHTML=list.length?list.map(function(a){return'<tr onclick="openDetail(\''+a.id+'\')"><td class="id-cell">'+a.id+'</td><td>'+a.name+'</td><td>'+a.cat+'</td><td>'+shortPlant(a.plant)+'</td><td class="val-cell">'+fmtV(a.value)+'</td><td>'+badge(a.status)+'</td><td onclick="event.stopPropagation()"><div class="row-actions"><button class="icon-btn" onclick="openEdit(\''+a.id+'\')">&#9998;</button><button class="icon-btn" onclick="quickPrint(\''+a.id+'\')">&#9672;</button><button class="icon-btn" onclick="deleteAsset(\''+a.id+'\')">&#10005;</button></div></td></tr>';}).join(''):'<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">&#9647;</div><div class="empty-title">No assets found</div></div></td></tr>';
+}
+
+function saveAsset(){
+  var n=gv('f-name'),c=gv('f-cat'),p=gv('f-plant'),val=gv('f-value'),d=gv('f-date');
+  if(!n||!c||!p||!val||!d){toast('Fill in all required fields');return;}
+  var obj={name:n,cat:c,plant:p,subloc:gv('f-subloc'),value:+val,date:d,vendor:gv('f-vendor'),invoice:gv('f-invoice'),status:gv('f-status'),life:+gv('f-life')||0,notes:gv('f-notes')};
+  if(editingId){
+    var idx=assets.findIndex(function(a){return a.id===editingId;});
+    assets[idx]=Object.assign({},assets[idx],obj);
+    toast('Asset updated');editingId=null;
+    document.getElementById('form-heading').textContent='Add New Asset';
+    document.getElementById('save-btn').textContent='Save Asset';
+  } else {
+    var id=genId(p);obj.id=id;assets.push(obj);toast('Asset '+id+' added');
+  }
+  syncToSheets(function(){showSection('assets');});
+}
+function resetForm(){
+  ['f-name','f-subloc','f-value','f-date','f-vendor','f-invoice','f-notes','f-life'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('f-cat').value='';document.getElementById('f-plant').value='';
+  document.getElementById('f-status').value='Active';editingId=null;
+  document.getElementById('form-heading').textContent='Add New Asset';
+  document.getElementById('save-btn').textContent='Save Asset';
+}
+function openEdit(id){
+  var a=assets.find(function(x){return x.id===id;});if(!a)return;
+  editingId=id;sv('f-name',a.name);sv('f-cat',a.cat);sv('f-plant',a.plant);sv('f-subloc',a.subloc||'');
+  sv('f-value',a.value);sv('f-date',a.date);sv('f-vendor',a.vendor||'');sv('f-invoice',a.invoice||'');
+  sv('f-status',a.status);sv('f-life',a.life||'');sv('f-notes',a.notes||'');
+  document.getElementById('form-heading').textContent='Edit Asset - '+id;
+  document.getElementById('save-btn').textContent='Update Asset';showSection('add');
+}
+function deleteAsset(id){
+  if(!confirm('Delete asset '+id+'?'))return;
+  assets=assets.filter(function(a){return a.id!==id;});
+  syncToSheets(function(){renderTable();renderDashboard();});
+  toast(id+' deleted');
+}
+
+function openDetail(id){
+  var a=assets.find(function(x){return x.id===id;});if(!a)return;
+  document.getElementById('modal-title').textContent=a.id+' - '+a.name;
+  document.getElementById('modal-body-content').innerHTML=
+    '<div class="detail-grid">'+
+    '<div><div class="detail-label">Asset ID</div><div class="detail-value mono">'+a.id+'</div></div>'+
+    '<div><div class="detail-label">Status</div><div class="detail-value">'+badge(a.status)+'</div></div>'+
+    '<div><div class="detail-label">Category</div><div class="detail-value">'+a.cat+'</div></div>'+
+    '<div><div class="detail-label">Plant</div><div class="detail-value">'+a.plant+'</div></div>'+
+    '<div><div class="detail-label">Sub-location</div><div class="detail-value">'+(a.subloc||'-')+'</div></div>'+
+    '<div><div class="detail-label">Value</div><div class="detail-value mono">Rs '+fmtV(a.value)+'</div></div>'+
+    '<div><div class="detail-label">Purchase Date</div><div class="detail-value mono">'+(a.date||'-')+'</div></div>'+
+    '<div><div class="detail-label">Vendor</div><div class="detail-value">'+(a.vendor||'-')+'</div></div>'+
+    (a.notes?'<div style="grid-column:1/-1"><div class="detail-label">Notes</div><div class="detail-value">'+a.notes+'</div></div>':'')+
+    '</div>'+
+    '<div style="margin-top:1rem;padding:12px;background:var(--bg);border-radius:var(--r);display:flex;align-items:center;gap:14px;">'+
+    '<div id="mqr-'+a.id+'" style="width:70px;height:70px;flex-shrink:0;"></div>'+
+    '<div><div style="font-size:13px;font-weight:500;font-family:var(--mono);">'+a.id+'</div>'+
+    '<div style="font-size:11px;color:var(--text3);">'+shortPlant(a.plant)+'</div></div></div>';
+  document.getElementById('modal-footer-btns').innerHTML=
+    '<button class="btn" onclick="closeModal(\'detail-modal\')">Close</button>'+
+    '<button class="btn" onclick="closeModal(\'detail-modal\');quickPrint(\''+a.id+'\')">Print Sticker</button>'+
+    '<button class="btn btn-primary" onclick="closeModal(\'detail-modal\');openEdit(\''+a.id+'\')">Edit</button>';
+  document.getElementById('detail-modal').classList.add('open');
+  setTimeout(function(){var el=document.getElementById('mqr-'+a.id);if(el&&!el.hasChildNodes())new QRCode(el,{text:a.id,width:70,height:70,colorDark:'#18180F',colorLight:'#ffffff'});},50);
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+function initScanner(){
+  if(scannerInstance)return;
+  document.getElementById('scan-result').classList.remove('show');
+  scannerInstance=new Html5Qrcode('qr-reader');
+  scannerInstance.start({facingMode:'environment'},{fps:10,qrbox:{width:220,height:220}},
+    function(txt){onScanSuccess(txt);},function(){})
+  .catch(function(){document.getElementById('qr-reader').innerHTML='<div style="padding:2rem;text-align:center;color:var(--text3);font-size:13px;">Camera not available. Use manual entry below.</div>';});
+}
+function stopScanner(){if(scannerInstance){scannerInstance.stop().catch(function(){});scannerInstance=null;}}
+function restartScanner(){document.getElementById('scan-result').classList.remove('show');stopScanner();setTimeout(initScanner,300);}
+function onScanSuccess(txt){
+  var id=txt.trim().toUpperCase();
+  var a=assets.find(function(x){return x.id===id;});
+  scannedAsset=a||null;
+  var res=document.getElementById('scan-result');
+  document.getElementById('scan-result-id').textContent=id;
+  document.getElementById('scan-result-name').textContent=a?a.name+' - '+shortPlant(a.plant):'Asset not found';
+  res.style.background=a?'var(--green-bg)':'var(--red-bg)';
+  res.style.border=a?'1px solid #a8d5b5':'1px solid #e8b4bc';
+  document.getElementById('scan-result-id').style.color=a?'var(--green)':'var(--red)';
+  document.getElementById('scan-result-name').style.color=a?'var(--green)':'var(--red)';
+  res.classList.add('show');stopScanner();
+}
+function lookupManual(){var id=document.getElementById('manual-id').value.trim().toUpperCase();if(id)onScanSuccess(id);}
+function viewScannedAsset(){if(scannedAsset)openDetail(scannedAsset.id);}
+function editScannedAsset(){if(scannedAsset)openEdit(scannedAsset.id);}
+
+function renderStickers(){
+  document.getElementById('sticker-grid').innerHTML=assets.map(function(a){
+    return'<div class="sticker-card '+(selectedStickers.indexOf(a.id)>=0?'selected':'')+'" onclick="toggleSticker(\''+a.id+'\',this)">'+
+    '<div class="sticker-check">&#10003;</div>'+
+    '<div class="sticker-qr-wrap" id="sqr-'+a.id+'"></div>'+
+    '<div class="sticker-info"><div class="sticker-id">'+a.id+'</div><div class="sticker-name">'+a.name+'</div><div class="sticker-plant">'+shortPlant(a.plant)+'</div></div></div>';
+  }).join('');
+  assets.forEach(function(a){setTimeout(function(){var el=document.getElementById('sqr-'+a.id);if(el&&!el.hasChildNodes())new QRCode(el,{text:a.id,width:80,height:80,colorDark:'#18180F',colorLight:'#ffffff'});},50);});
+  updateCount();
+}
+function toggleSticker(id,el){var i=selectedStickers.indexOf(id);if(i>=0)selectedStickers.splice(i,1);else selectedStickers.push(id);el.classList.toggle('selected');updateCount();}
+function selectAllStickers(){selectedStickers=assets.map(function(a){return a.id;});renderStickers();}
+function clearStickerSelection(){selectedStickers=[];renderStickers();}
+function updateCount(){document.getElementById('sel-count').textContent=selectedStickers.length;}
+function printStickers(){
+  if(!selectedStickers.length){toast('Select at least one asset');return;}
+  var sheet=document.getElementById('print-sheet');sheet.innerHTML='';
+  selectedStickers.forEach(function(id){
+    var a=assets.find(function(x){return x.id===id;});if(!a)return;
+    var d=document.createElement('div');d.className='print-sticker';
+    d.innerHTML='<div id="pqr-'+a.id+'"></div><div class="print-id">'+a.id+'</div><div class="print-name">'+a.name+'</div><div class="print-plant">'+shortPlant(a.plant)+'</div>';
+    sheet.appendChild(d);
+  });
+  document.getElementById('print-area').style.display='block';
+  selectedStickers.forEach(function(id){var a=assets.find(function(x){return x.id===id;});if(a)new QRCode(document.getElementById('pqr-'+a.id),{text:a.id,width:70,height:70,colorDark:'#000',colorLight:'#fff'});});
+  setTimeout(function(){window.print();document.getElementById('print-area').style.display='none';},400);
+}
+function quickPrint(id){selectedStickers=[id];showSection('stickers');setTimeout(printStickers,700);}
+
+function exportCSV(){
+  var H=['Asset ID','Name','Category','Plant','Sub-location','Value','Date','Vendor','Invoice','Status','Life','Notes'];
+  var R=assets.map(function(a){return[a.id,a.name,a.cat,a.plant,a.subloc||'',a.value,a.date,a.vendor||'',a.invoice||'',a.status,a.life||'',a.notes||''];});
+  var csv=[H].concat(R).map(function(r){return r.map(function(c){return'"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var url=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  var a=document.createElement('a');a.href=url;a.download='assets_export.csv';a.click();
+  URL.revokeObjectURL(url);toast('CSV exported');
+}
+
+function gv(id){return document.getElementById(id).value;}
+function sv(id,val){document.getElementById(id).value=val;}
+function shortPlant(p){return p?p.split('(')[0].trim():'';}
+function fmtV(n){n=+n||0;if(n>=10000000)return(n/10000000).toFixed(1)+'Cr';if(n>=100000)return(n/100000).toFixed(1)+'L';return n.toLocaleString('en-IN');}
+function badge(s){var m={'Active':'badge-active','Under Repair':'badge-repair','Disposed':'badge-disposed'};return'<span class="badge '+(m[s]||'badge-disposed')+'">'+s+'</span>';}
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
+</script>
+</body>
+</html>
