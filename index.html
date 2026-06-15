@@ -124,7 +124,19 @@ tbody tr:hover td{background:#FAFAF6;}
 .empty-sub{font-size:12px;}
 .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--ink);color:#fff;padding:10px 18px;border-radius:var(--r);font-size:13px;font-family:var(--mono);z-index:9999;transform:translateY(80px);opacity:0;transition:all 0.25s ease;pointer-events:none;max-width:300px;}
 .toast.show{transform:translateY(0);opacity:1;}
-@media print{body *{visibility:hidden;}#print-area,#print-area *{visibility:visible;}#print-area{position:fixed;left:0;top:0;width:100%;}.print-sheet{display:grid;grid-template-columns:repeat(4,1fr);gap:5mm;padding:10mm;}.print-sticker{border:1px dashed #999;border-radius:4px;padding:5mm;display:flex;flex-direction:column;align-items:center;gap:4px;break-inside:avoid;}.print-sticker canvas{width:60px!important;height:60px!important;}.print-id{font-family:monospace;font-size:10px;font-weight:bold;letter-spacing:1px;}.print-name{font-size:8px;text-align:center;max-width:80px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}.print-plant{font-family:monospace;font-size:7px;color:#666;}}
+@media print{
+body *{visibility:hidden;}
+#print-area,#print-area *{visibility:visible;}
+#print-area{position:fixed;left:0;top:0;width:100%;}
+@page{size:A4;margin:0;}
+.print-sheet{display:grid;grid-template-columns:repeat(var(--cols,4),var(--lw,50mm));grid-auto-rows:var(--lh,50mm);gap:var(--gap,0mm);padding-top:var(--ot,0mm);padding-left:var(--ol,0mm);}
+.print-sticker{width:var(--lw,50mm);height:var(--lh,50mm);box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1mm;break-inside:avoid;page-break-inside:avoid;}
+.print-sticker.calib-border{border:0.5px solid #ccc;}
+.print-sticker canvas{width:55%!important;height:auto!important;}
+.print-id{font-family:monospace;font-size:9px;font-weight:bold;letter-spacing:0.5px;}
+.print-name{font-size:7px;text-align:center;max-width:90%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.print-plant{font-family:monospace;font-size:6px;color:#666;}
+}
 .mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--ink);z-index:200;padding:8px 0;border-top:1px solid rgba(255,255,255,0.1);}
 .mob-nav-items{display:flex;justify-content:space-around;}
 .mob-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:rgba(255,255,255,0.5);cursor:pointer;padding:4px 12px;font-size:10px;font-family:var(--mono);}
@@ -249,8 +261,17 @@ tbody tr:hover td{background:#FAFAF6;}
 </div>
 </div>
 <div class="section" id="sec-stickers">
-<div class="sticker-controls">
-<div style="flex:1;"><div style="font-size:14px;font-weight:500;">Select assets to print QR stickers</div><div class="sticker-note">Prints on A4 - 4 stickers per row.</div></div>
+<div class="sticker-controls" style="flex-wrap:wrap;">
+<div style="flex:1 1 100%;"><div style="font-size:14px;font-weight:500;">Select assets to print QR stickers</div><div class="sticker-note">Set these to match your label sheet, then test-print on plain paper before using real labels.</div></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-family:var(--mono);font-size:11px;color:var(--text2);">
+<label>Label W <input type="number" id="lbl-w" value="50" style="width:50px;padding:4px;border:1px solid var(--border);border-radius:4px;"> mm</label>
+<label>Label H <input type="number" id="lbl-h" value="50" style="width:50px;padding:4px;border:1px solid var(--border);border-radius:4px;"> mm</label>
+<label>Columns <input type="number" id="lbl-cols" value="4" style="width:40px;padding:4px;border:1px solid var(--border);border-radius:4px;"></label>
+<label>Gap <input type="number" id="lbl-gap" value="0" style="width:40px;padding:4px;border:1px solid var(--border);border-radius:4px;"> mm</label>
+<label>Top offset <input type="number" id="lbl-ot" value="0" style="width:40px;padding:4px;border:1px solid var(--border);border-radius:4px;"> mm</label>
+<label>Left offset <input type="number" id="lbl-ol" value="0" style="width:40px;padding:4px;border:1px solid var(--border);border-radius:4px;"> mm</label>
+<label><input type="checkbox" id="lbl-border" checked> Show cell outline</label>
+</div>
 <button class="btn" onclick="selectAllStickers()">Select All</button>
 <button class="btn" onclick="clearStickerSelection()">Clear</button>
 <button class="btn btn-primary" onclick="printStickers()">Print (<span id="sel-count">0</span>)</button>
@@ -486,6 +507,7 @@ function viewScannedAsset(){if(scannedAsset)openDetail(scannedAsset.id);}
 function editScannedAsset(){if(scannedAsset)openEdit(scannedAsset.id);}
 
 function renderStickers(){
+  loadLabelCalib();
   document.getElementById('sticker-grid').innerHTML=assets.map(function(a){
     return'<div class="sticker-card '+(selectedStickers.indexOf(a.id)>=0?'selected':'')+'" onclick="toggleSticker(\''+a.id+'\',this)">'+
     '<div class="sticker-check">&#10003;</div>'+
@@ -502,15 +524,38 @@ function updateCount(){document.getElementById('sel-count').textContent=selected
 function printStickers(){
   if(!selectedStickers.length){toast('Select at least one asset');return;}
   var sheet=document.getElementById('print-sheet');sheet.innerHTML='';
+
+  var lw=(+gv('lbl-w')||50)+'mm', lh=(+gv('lbl-h')||50)+'mm';
+  var cols=(+gv('lbl-cols')||4), gap=(+gv('lbl-gap')||0)+'mm';
+  var ot=(+gv('lbl-ot')||0)+'mm', ol=(+gv('lbl-ol')||0)+'mm';
+  var border=document.getElementById('lbl-border').checked;
+  sheet.style.setProperty('--lw',lw);
+  sheet.style.setProperty('--lh',lh);
+  sheet.style.setProperty('--cols',cols);
+  sheet.style.setProperty('--gap',gap);
+  sheet.style.setProperty('--ot',ot);
+  sheet.style.setProperty('--ol',ol);
+  localStorage.setItem('fam_label_calib',JSON.stringify({lw:gv('lbl-w'),lh:gv('lbl-h'),cols:gv('lbl-cols'),gap:gv('lbl-gap'),ot:gv('lbl-ot'),ol:gv('lbl-ol'),border:border}));
+
   selectedStickers.forEach(function(id){
     var a=assets.find(function(x){return x.id===id;});if(!a)return;
-    var d=document.createElement('div');d.className='print-sticker';
+    var d=document.createElement('div');d.className='print-sticker'+(border?' calib-border':'');
     d.innerHTML='<div id="pqr-'+a.id+'"></div><div class="print-id">'+a.id+'</div><div class="print-name">'+a.name+'</div><div class="print-plant">'+shortPlant(a.plant)+'</div>';
     sheet.appendChild(d);
   });
   document.getElementById('print-area').style.display='block';
-  selectedStickers.forEach(function(id){var a=assets.find(function(x){return x.id===id;});if(a)new QRCode(document.getElementById('pqr-'+a.id),{text:a.id,width:70,height:70,colorDark:'#000',colorLight:'#fff'});});
+  selectedStickers.forEach(function(id){var a=assets.find(function(x){return x.id===id;});if(a)new QRCode(document.getElementById('pqr-'+a.id),{text:a.id,width:120,height:120,colorDark:'#000',colorLight:'#fff'});});
   setTimeout(function(){window.print();document.getElementById('print-area').style.display='none';},400);
+}
+
+function loadLabelCalib(){
+  var saved=localStorage.getItem('fam_label_calib');
+  if(!saved)return;
+  try{
+    var c=JSON.parse(saved);
+    sv('lbl-w',c.lw);sv('lbl-h',c.lh);sv('lbl-cols',c.cols);sv('lbl-gap',c.gap);sv('lbl-ot',c.ot);sv('lbl-ol',c.ol);
+    document.getElementById('lbl-border').checked=c.border!==false;
+  }catch(e){}
 }
 function quickPrint(id){selectedStickers=[id];showSection('stickers');setTimeout(printStickers,700);}
 
